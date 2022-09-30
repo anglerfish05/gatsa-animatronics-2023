@@ -26,13 +26,22 @@ TMRpcm audio;
 
 // button constants
 const int button1Pin = 5; // attractions
+bool button1 = false;
 const int button2Pin = 6; // food
+bool button2 = false;
 const int button3Pin = 7; // state parks
+bool button3 = false;
 const int button4Pin = 8; // historical sites
+bool button4 = false;
 const int button5Pin = 9; // historical figures
+bool button5 = false;
 
 const int button6Pin = 10; // food
+bool button6 = false;
 const int button7Pin = 11; // gas
+bool button7 = false;
+
+const int buttonOR = 13; // ultrasonic override
 
 void ultrasonic() {
   // clears the trigPin
@@ -57,26 +66,118 @@ void ultrago() {
   }
 }
 
+void buttonsAllOn() {
+  button1 = true;
+  button2 = true;
+  button3 = true;
+  button4 = true;
+  button5 = true;
+  button6 = true;
+  button7 = true;
+}
+void buttonsAllOff() {
+  button1 = false;
+  button2 = false;
+  button3 = false;
+  button4 = false;
+  button5 = false;
+  button6 = false;
+  button7 = false;
+}
+/*void setButtonsOff(int x) {
+  for( int i = 1 ; i <= 7 ; i++ ) {
+    if( i != x ) {
+       
+    }
+  }
+} */
+
 void setup() {
   // put your setup code here, to run once:
+  
   // UltraSonic Sensor
   pinMode (trigPin, OUTPUT);
   pinMode (echoPin, INPUT);
-  
+
+  // tmrpcm
   audio.speakerPin = 12;
+  audio.setVolume(5); // 0-7
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+   
    ultrasonic();
    ultrago();
   
   // when ultrasonic detects
    while(start) {
+    // intro plays
     if(start) {
       tmrpcm.play( "intro.wav" ); // PLACE FILE
     }
+    if(audio.isPlaying() == 0)
+    {
+      buttonsAllOn();
+    }
     
+    if( digitalRead(button1Pin) == HIGH && button1 ) {
+      button2 = false;
+      button3 = false;
+      button4 = false;
+      button5 = false;
+      button6 = false;
+      button7 = false;
+      
+    }
+    else if( digitalRead(button2Pin) == HIGH && button2 ) {
+      button1 = false;
+      button3 = false;
+      button4 = false;
+      button5 = false;
+      button6 = false;
+      button7 = false;
+    }
+    else if( digitalRead(button3Pin) == HIGH && button3 ) {
+      button1 = false;
+      button2 = false;
+      button4 = false;
+      button5 = false;
+      button6 = false;
+      button7 = false;
+    }
+    else if( digitalRead(button4Pin) == HIGH && button4 ) {
+      button1 = false;
+      button2 = false;
+      button3 = false;
+      button5 = false;
+      button6 = false;
+      button7 = false;
+    }
+    else if( digitalRead(button5Pin) == HIGH && button5 ) {
+      button1 = false;
+      button2 = false;
+      button3 = false;
+      button4 = false;
+      button6 = false;
+      button7 = false;
+    }
+    else if( digitalRead(button6Pin) == HIGH && button6 ) {
+      button1 = false;
+      button2 = false;
+      button3 = false;
+      button4 = false;
+      button5 = false;
+      button7 = false;
+    }
+    else if( digitalRead(button7Pin == HIGH && button7 ) {
+      button1 = false;
+      button2 = false;
+      button3 = false;
+      button4 = false;
+      button5 = false;
+      button6 = false;
+    }
    }
  
 }
