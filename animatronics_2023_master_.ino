@@ -128,7 +128,11 @@ void loop() {
       button5 = false;
       button6 = false;
       button7 = false;
-      
+
+      tmrpcm.play( "attractions.wav" );
+      Wire.beginTransmission(9);
+      Wire.write(1);
+      Wire.endTransmission();
     }
     else if( digitalRead(button2Pin) == HIGH && button2 ) {
       button1 = false;
@@ -137,6 +141,11 @@ void loop() {
       button5 = false;
       button6 = false;
       button7 = false;
+
+      tmrpcm.play( "food1.wav" );
+      Wire.beginTransmission(9);
+      Wire.write(2);
+      Wire.endTransmission();
     }
     else if( digitalRead(button3Pin) == HIGH && button3 ) {
       button1 = false;
@@ -145,6 +154,11 @@ void loop() {
       button5 = false;
       button6 = false;
       button7 = false;
+
+      tmrpcm.play( "stateparks.wav" );
+      Wire.beginTransmission(9);
+      Wire.write(3);
+      Wire.endTransmission();
     }
     else if( digitalRead(button4Pin) == HIGH && button4 ) {
       button1 = false;
@@ -153,6 +167,12 @@ void loop() {
       button5 = false;
       button6 = false;
       button7 = false;
+
+      tmrpcm.play( "historicalsites.wav" );
+      Wire.beginTransmission(9);
+      Wire.write(4);
+      Wire.endTransmission();
+      
     }
     else if( digitalRead(button5Pin) == HIGH && button5 ) {
       button1 = false;
@@ -161,6 +181,11 @@ void loop() {
       button4 = false;
       button6 = false;
       button7 = false;
+
+      tmrpcm.play( "historicalfigures.wav" );
+      Wire.beginTransmission(9);
+      Wire.write(5);
+      Wire.endTransmission();
     }
     else if( digitalRead(button6Pin) == HIGH && button6 ) {
       button1 = false;
@@ -169,6 +194,11 @@ void loop() {
       button4 = false;
       button5 = false;
       button7 = false;
+
+      tmrpcm.play( "food2.wav" );
+      Wire.beginTransmission(9);
+      Wire.write(6);
+      Wire.endTransmission();
     }
     else if( digitalRead(button7Pin == HIGH && button7 ) {
       button1 = false;
@@ -177,6 +207,15 @@ void loop() {
       button4 = false;
       button5 = false;
       button6 = false;
+
+      tmrpcm.play( "gas.wav" );
+      Wire.beginTransmission(9);
+      Wire.write(7);
+      Wire.endTransmission();
+    }
+   
+    if ( start && end1 ) {
+      return;
     }
    }
  
