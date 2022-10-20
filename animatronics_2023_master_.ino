@@ -1,3 +1,4 @@
+#include <FastLED.h>
 #include <SPI.h>
 #include <SD.h>
 #include <Servo.h>
@@ -5,6 +6,7 @@
 #include <pcmRF.h>
 #include <pcmConfig.h>
 #include <TMRpcm.h>
+
 
 // general constants
 bool start = false;
@@ -262,7 +264,7 @@ void loop() {
       button1 = false;
       button2 = false;
       button3 = false;
-      button4 = false;w
+      button4 = false;
       button5 = false;
       button6 = false;
 
@@ -275,7 +277,11 @@ void loop() {
       Wire.endTransmission();
     }
    
-    if ( start && end1 ) {
+    if ( end1 ) {
+      tmrpcm.play( "ending.wav" );
+      while (audio.isPlaying() == 1) {
+        motor1.Update();
+      }
       return;
     }
    }
