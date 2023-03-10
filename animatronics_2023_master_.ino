@@ -1,16 +1,24 @@
 #include <FastLED.h>
 #include <SPI.h>
 #include <SD.h>
+#define SD_ChipSelectPin 53
 #include <Servo.h>
 #include <Wire.h>
 #include <pcmRF.h>
 #include <pcmConfig.h>
 #include <TMRpcm.h>
 
+// motor constants
+int enA = 5;
+int in1 = 21;
+
 // rgb constants
 #define LED_TYPE WS2812B
-CRGB headLights[20]; // num leds per strip
-CRGB mainLights[60];
+CRGB headLightsLeft[13]; // num leds per strip
+CRGB headLightsRight[13];
+CRGB leftLights[30];
+CRGB centerLights[30];
+CRGB rightLights[30];
 
 // general constants
 bool start = false;
@@ -22,10 +30,6 @@ const int trigPin = 3;
 const int echoPin = 2;
 long distance;
 long duration;
-
-// SD shield constants
-const int sdPin = 4;
-TMRpcm tmrpcm;
 
 // audio settings
 TMRpcm audio;
@@ -45,8 +49,6 @@ const int button6Pin = 27; // food
 bool button6 = false;
 const int button7Pin = 28; // gas
 bool button7 = false;
-
-// const int buttonOR = 13; // ultrasonic override
 
 void ultrasonic() {
   // clears the trigPin
@@ -91,53 +93,39 @@ void buttonsAllOff() {
 }
 
 void lightsOff() {
-  fill_solid(headLights, 20, CRGB::Black);
-  fill_solid(mainLights, 60, CRGB::Black);
+  fill_solid(headLightsLeft, 13, CRGB::Black);
+  fill_solid(headLightsRight, 13, CRGB::Black);
+  fill_solid(leftLights, 6, CRGB::Black);
+  fill_solid(centerLights, 8, CRGB::Black);
+  fill_solid(rightLights, 6, CRGB::Black);
+  FastLED.show();
+}
+void mainLightsOff() {
+  fill_solid(leftLights, 6, CRGB::Black);
+  fill_solid(centerLights, 8, CRGB::Black);
+  fill_solid(rightLights, 6, CRGB::Black);
   FastLED.show();
 }
 void lightsOn() {
-  fill_solid(headLights, 20, FAF5DF);
-  fill_solid(mainLights, 60, FAF5DF);
+  fill_solid(headLightsLeft, 13, CRGB(243, 231, 50));
+  fill_solid(headLightsRight, 13, CRGB(243, 231, 50));
+  fill_solid(leftLights, 6, CRGB(243, 231, 50));
+  fill_solid(centerLights, 8, CRGB(243, 231, 50));
+  fill_solid(rightLights, 6, CRGB(243, 231, 50));
   FastLED.show();
 }
-
-class Motor {
-  Servo servo; 
-  int pos;
-  int increment;
-  int updateInterval;
-  unsigned long lastUpdate;
-
-
-public:
-  Motor(int interval) {
-    updateInterval = interval;
-    increment = 1;
-  }
-
-  void Attach(int pin) {
-    servo.attach(pin);
-  }
-  
-  void Detach() {
-    servo.detach();
-  }
-  
-  void Update() {
-    if ((millis() - lastUpdate) > updateInterval) { // time to update
-        lastUpdate = millis();
-        pos += increment;
-        servo.write(pos);
-        Serial.println(pos);
-        if ((pos >= 100) || (pos <= 0)) { // end of sweep
-          // reverse direction
-          increment = -increment;
-        }
-      }
-  }
-};
-
-Motor motor1(5); // increase # slows down, decrease faster
+void centerLightsOn() {
+  fill_solid(centerLights, 8, CRGB(243, 231, 50));
+  FastLED.show();
+}
+void leftLightsOn() {
+  fill_solid(leftLights, 6, CRGB(243, 231, 50));
+  FastLED.show();
+}
+void rightLightsOn() {
+  fill_solid(rightLights, 6, CRGB(243, 231, 50));
+  FastLED.show();
+}
 
 void setup() {
   // put your setup code here, to run once:
@@ -151,8 +139,10 @@ void setup() {
   pinMode(button7Pin, INPUT);
         
   // rgb
-  FastLED.addLeds<LED_TYPE, 6, GRB> (headLights, 20).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, 7, GRB> (mainLights, 60).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, 6, GRB> (headLights, 20);
+  FastLED.addLeds<LED_TYPE, 7, GRB> (leftLights, 30);
+  FastLED.addLeds<LED_TYPE, 8, GRB> (centerLights, 30);
+  FastLED.addLeds<LED_TYPE, 9, GRB> (rightLights, 30);
   FastLED.setBrightness(50);
 
   // i2c
@@ -163,11 +153,16 @@ void setup() {
   pinMode (echoPin, INPUT);
 
   // tmrpcm
-  audio.speakerPin = 5;
-  audio.setVolume(5); // 0-7
+  audio.speakerPin = 11;
+  if (!SD.begin(SD_ChipSelectPin)) {  // see if the card is present and can be initialized:
+  return;   // don't do anything more if not
+  }
+  audio.setVolume(7); // 0-7
 
   // motor
-  motor1.Attach(11);
+  pinMode(enA, OUTPUT);
+  pinMode(in1, OUTPUT);
+  analogWrite(enA, 100);
 }
 
 void loop() {
@@ -180,18 +175,15 @@ void loop() {
    while(start) {
     // intro plays
     if(start) {
-      tmrpcm.play( "intro.wav" ); // PLACE FILE
-      while(audio.isPlaying() == 1) {
-        lightsOn();
-        motor1.Update();
-      }
-    }
-    
-    if(audio.isPlaying() == 0) {
+      lightsOn();
+      motor.write(MF);
+      delay(5000); //audio time
+      motor.write(MS);
+      mainLightsOff();
       buttonsAllOn();
     }
     
-    if( digitalRead(button1Pin) == HIGH && button1 ) {
+    else if( digitalRead(button1Pin) == HIGH && button1 ) {
       button2 = false;
       button3 = false;
       button4 = false;
@@ -199,34 +191,21 @@ void loop() {
       button6 = false;
       button7 = false;
 
-      tmrpcm.play( "attractions.wav" );
-      while(audio.isPlaying() == 1) {
-        motor1.Update();
-      }
+      centerLightsOn();
+      motor.write(MF);
       Wire.beginTransmission(9);
       Wire.write(1);
+      audio.play( "attractions.wav" );
       Wire.endTransmission();
-      delay(5000);
-      motor1.Detach();
-    }
-    else if( digitalRead(button2Pin) == HIGH && button2 ) {
-      button1 = false;
-      button3 = false;
-      button4 = false;
-      button5 = false;
-      button6 = false;
-      button7 = false;
-
-      tmrpcm.play( "food1.wav" );
-      while(audio.isPlaying() == 1) {
-        motor1.Update();
-      }
-      Wire.beginTransmission(9);
+      delay(5000); // audio time
+      motor.write(MS);
+      mainLightsOff();
+      buttonsAllOn();
+      Wire.beginTransmission(2);
       Wire.write(2);
       Wire.endTransmission();
-      delay(5000);
-      motor1.Detach();
     }
+    
     else if( digitalRead(button3Pin) == HIGH && button3 ) {
       button1 = false;
       button2 = false;
@@ -235,16 +214,21 @@ void loop() {
       button6 = false;
       button7 = false;
 
-      tmrpcm.play( "stateparks.wav" );
-      while(audio.isPlaying() == 1) {
-        motor1.Update();
-      }
+      leftLightsOn();
+      motor.write(MF);
       Wire.beginTransmission(9);
       Wire.write(3);
+      audio.play( "stateparks.wav" );
       Wire.endTransmission();
-      delay(5000);
-      motor1.Detach();
+      delay(5000); // audio time
+      motor.write(MS);
+      mainLightsOff();
+      buttonsAllOn();
+      Wire.beginTransmission(2);
+      Wire.write(2);
+      Wire.endTransmission();
     }
+    
     else if( digitalRead(button4Pin) == HIGH && button4 ) {
       button1 = false;
       button2 = false;
@@ -253,17 +237,21 @@ void loop() {
       button6 = false;
       button7 = false;
 
-      tmrpcm.play( "historicalsites.wav" );
-      while(audio.isPlaying() == 1) {
-        motor1.Update();
-      }
+      rightLightsOn();
+      motor.write(MF);
       Wire.beginTransmission(9);
       Wire.write(4);
+      audio.play( "historicalsites.wav" );
       Wire.endTransmission();
-      delay(5000);
-      motor1.Detach();
-      
+      delay(5000); // audio time
+      motor.write(MS);
+      mainLightsOff();
+      buttonsAllOn();
+      Wire.beginTransmission(2);
+      Wire.write(2);
+      Wire.endTransmission();   
     }
+    
     else if( digitalRead(button5Pin) == HIGH && button5 ) {
       button1 = false;
       button2 = false;
@@ -272,16 +260,22 @@ void loop() {
       button6 = false;
       button7 = false;
 
-      tmrpcm.play( "historicalfigures.wav" );
-      while(audio.isPlaying() == 1) {
-        motor1.Update();
-      }
+      leftLightsOn();
+      rightLightsOn();
+      motor.write(MF);
       Wire.beginTransmission(9);
       Wire.write(5);
+      audio.play( "historicalfigures.wav" );
       Wire.endTransmission();
-      delay(5000);
-      motor1.Detach();
+      delay(5000); // audio time
+      motor.write(MS);
+      mainLightsOff();
+      buttonsAllOn();
+      Wire.beginTransmission(2);
+      Wire.write(2);
+      Wire.endTransmission();
     }
+    
     else if( digitalRead(button6Pin) == HIGH && button6 ) {
       button1 = false;
       button2 = false;
@@ -290,17 +284,16 @@ void loop() {
       button5 = false;
       button7 = false;
 
-      tmrpcm.play( "food2.wav" );
-      while(audio.isPlaying() == 1) {
-        motor1.Update();
-      }
-      Wire.beginTransmission(9);
-      Wire.write(6);
-      Wire.endTransmission();
-      delay(5000);
-      motor1.Detach();
+      centerLightsOn();
+      motor.write(MF);
+      audio.play( "food.wav" );
+      delay(5000); // audio time
+      motor.write(MS);
+      mainLightsOff();
+      buttonsAllOn();
     }
-    else if( digitalRead(button7Pin == HIGH && button7 ) {
+    
+    else if ( digitalRead(button7Pin == HIGH && button7 ) ) {
       button1 = false;
       button2 = false;
       button3 = false;
@@ -308,24 +301,21 @@ void loop() {
       button5 = false;
       button6 = false;
 
-      tmrpcm.play( "gas.wav" );
-      while(audio.isPlaying() == 1) {
-        motor1.Update();
-      }
-      Wire.beginTransmission(9);
-      Wire.write(7);
-      Wire.endTransmission();
-      delay(5000);
-      motor1.Detach();
+      centerLightsOn();
+      motor.write(MF);
+      audio.play( "gas.wav" );
+      delay(5000); // audio time
+      motor.write(MS);
+      mainLightsOff();
+      buttonsAllOn();
     }
    
     if ( end1 ) {
-      tmrpcm.play( "ending.wav" );
-      while (audio.isPlaying() == 1) {
-        motor1.Update();
-      }
-      delay(5000);
-      motor1.Detach();
+      lightsOn();
+      motor.write(MF);
+      audio.play( "ending.wav" );
+      delay(5000); // audio time
+      motor.write(MS);
       lightsOff();
       return;
     }
